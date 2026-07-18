@@ -17,3 +17,8 @@ npm-debug.log*
 
 # Dependencies (if added later)
 node_modules/
+
+# Generated telemetry data — produced by headless_orchestrator / telemetry_factory scripts.
+# These are simulation output files, not source fixtures. Do not commit.
+# Deliberately versioned sample files or documentation inside telemetry_factory/ are NOT ignored.
+telemetry_factory/episode_*.jsonl
