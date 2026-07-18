@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Lumin Flow: Utopia Run</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover" />
+    <meta name="description"
+        content="Travel from Mercury to TRAPPIST-1e in this space survival game. Each sector is a new planet with its own boss." />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0ac8b9" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Lumin Flow" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
+
+    <!-- Prevent text selection and callouts on mobile -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div id="game-canvas"></div>
+
+    <!-- Main Menu -->
+    <div id="menu-overlay" class="overlay-root overlay-visible">
+        <div class="menu-card">
+            <h1 class="menu-title">Lumin Flow: Utopia Run</h1>
+            <p class="menu-subtitle">Travel from Mercury to TRAPPIST-1e. Each sector is a new planet with its own boss.
+            </p>
+            <div class="menu-buttons">
+                <button id="btn-play" class="menu-btn"><span>▶ Play · Utopia Run</span></button>
+                <button id="btn-tutorial" class="menu-btn"><span>❔ Tutorial</span></button>
+                <button id="btn-meta" class="menu-btn"><span>🧬 Meta Lab (Upgrades)</span></button>
+                <button id="btn-settings" class="menu-btn"><span>⚙ Settings</span></button>
+            </div>
+            <div class="mt-4 border-t border-slate-700 pt-3">
+                <div class="text-xs text-center text-slate-500">v3.0 · 3D Hextech Core</div>
+            </div>
+            <div class="mt-2 stats-line" id="highscore-line">High-Archive: 0 💎</div>
+            <div class="mt-1 stats-line" id="meta-line">Archive Shards: 0 ✶</div>
+        </div>
+    </div>
+
+    <!-- Story -->
+    <div id="story-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card">
+            <h2 id="story-title" class="menu-title" style="font-size:1.6rem;">Prologue</h2>
+            <p id="story-body" class="mt-3 text-sm" style="color:#e2e8f0;line-height:1.6;"></p>
+            <p id="story-subtitle" class="mt-2 text-xs text-slate-400 uppercase" style="letter-spacing:0.18em;"></p>
+            <div class="menu-buttons mt-4">
+                <button id="btn-story-next" class="menu-btn">Next ▷</button>
+                <button id="btn-story-skip" class="menu-btn">Skip Prologue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial -->
+    <div id="tutorial-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card">
+            <h2 class="menu-title" style="font-size:1.5rem;">How to Play</h2>
+            <ul class="mt-3 text-sm space-y-1" style="color:#cbd5e1;">
+                <li>🕹 Move: mouse/touch – ship follows cursor</li>
+                <li>🔫 Hold to auto-fire toward cursor</li>
+                <li>💠 Collect cyan orbs & fruits for Flow/crystals</li>
+                <li>🛡 Shield orbs protect from hits</li>
+                <li>❄ Freeze (F): time-lock enemies</li>
+                <li>🌀 Aura (R): wipe enemies</li>
+                <li>🌊 Decoy (Space): mislead creatures</li>
+            </ul>
+            <div class="menu-buttons mt-4">
+                <button id="btn-tutorial-back" class="menu-btn">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboard -->
+    <div id="onboard-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card">
+            <h2 class="menu-title" style="font-size:1.5rem;">Quick Start</h2>
+            <ul class="mt-3 text-sm space-y-1" style="color:#cbd5e1;">
+                <li>🌊 Keep Flow high: collect energy & fruits</li>
+                <li>🔫 Hold to shoot, drag to move</li>
+                <li>🚀 Purify the gate to advance</li>
+            </ul>
+            <div class="menu-buttons mt-4">
+                <button id="btn-onboard-start" class="menu-btn">▶ Begin</button>
+                <button id="btn-onboard-back" class="menu-btn">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Roadmap -->
+    <div id="roadmap-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card">
+            <h2 class="menu-title" style="font-size:1.5rem;">Journey to Utopia</h2>
+            <p class="menu-subtitle">Reach Sector 12</p>
+            <div id="roadmap-list" class="mt-3 text-sm space-y-2"
+                style="color:#e2e8f0;max-height:200px;overflow-y:auto;"></div>
+            <div class="mt-3 text-xs text-slate-400" id="roadmap-meta-line"></div>
+            <div class="menu-buttons mt-4">
+                <button id="btn-roadmap-start" class="menu-btn">▶ Start Run</button>
+                <button id="btn-roadmap-back" class="menu-btn">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meta Lab -->
+    <div id="meta-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card" style="max-height:90vh;display:flex;flex-direction:column;">
+            <h2 class="menu-title" style="font-size:1.6rem;">Meta Lab</h2>
+            <div class="mt-3 text-sm overflow-y-auto flex-1" style="max-height:300px;">
+                <div class="flex justify-between items-center mb-2">
+                    <span style="color:#c8aa6e;">Archive Shards</span>
+                    <span id="meta-shards" style="color:#0ac8b9;">0 ✶</span>
+                </div>
+                <div id="meta-upgrades-list" class="mt-1"></div>
+                <div id="meta-achievements-list" class="mt-3 text-xs space-y-1"></div>
+            </div>
+            <div class="menu-buttons mt-4">
+                <button id="btn-meta-back" class="menu-btn">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="settings-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card">
+            <h2 class="menu-title" style="font-size:1.6rem;">Settings</h2>
+            <div class="mt-4">
+                <div class="toggle-row"><label>Music</label><input id="toggle-music" type="checkbox" checked /></div>
+                <div class="toggle-row"><label>SFX</label><input id="toggle-sfx" type="checkbox" checked /></div>
+                <div class="toggle-row"><label>Haptics</label><input id="toggle-haptics" type="checkbox" checked />
+                </div>
+                <div class="toggle-row"><label>Performance Mode</label><input id="toggle-performance" type="checkbox" />
+                </div>
+                <div class="toggle-row"><label>Screen Shake</label><input id="toggle-shake" type="checkbox" checked />
+                </div>
+            </div>
+            <div class="menu-buttons mt-6">
+                <button id="btn-settings-back" class="menu-btn">← Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card">
+            <div id="results-title" class="menu-title" style="font-size:1.8rem;">ARCHIVE LOST</div>
+            <div id="results-subtitle" class="menu-subtitle">Resonance collapsed.</div>
+            <div id="results-stats" class="mt-4 text-sm space-y-1">
+                <div id="results-crystals">Crystals: 0 💎</div>
+                <div id="results-best">Best: 0 💎</div>
+                <div id="results-planets">Sector: 1</div>
+                <div id="results-shards">Shards: 0 ✶</div>
+                <div id="results-style">Style: -</div>
+            </div>
+            <div class="menu-buttons mt-4">
+                <button id="btn-restart" class="menu-btn">▶ Run Again</button>
+                <button id="btn-menu" class="menu-btn">⌂ Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause -->
+    <div id="pause-overlay" class="overlay-root overlay-hidden">
+        <div class="menu-card">
+            <h2 class="menu-title" style="font-size:1.6rem;">Paused</h2>
+            <div class="menu-buttons mt-4">
+                <button id="btn-resume" class="menu-btn">▶ Resume</button>
+                <button id="btn-quit" class="menu-btn">⌂ Quit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="game-hud" style="display:none;">
+        <div id="top-hud">
+            <div id="flow-bar-container">
+                <div id="flow-bar-fill"></div>
+            </div>
+        </div>
+        <div id="planet-label" class="hud-label">Mercury · Sector 1</div>
+        <div id="score-label" class="hud-label">💎 0</div>
+        <div id="objective-label" class="hud-label">Purify Gate</div>
+        <div id="mode-label" class="hud-label">Utopia Run</div>
+        <div id="habitat-label" class="hud-label">Habitat: Tier 0</div>
+        <button id="pause-button">
+            <div id="pause-button-inner"><span></span><span></span></div>
+        </button>
+        <!-- Ability buttons removed for clean mobile HUD -->
+        <!-- Abilities are still mapped to keyboard (F=Freeze, R=Aura, Space=Decoy) and mobile touch buttons -->
+    </div>
+
+    <div id="notification-container"></div>
+
+    <!-- Mobile Controls (Joystick + Buttons) -->
+    <div id="mobile-controls" class="mobile-controls-container">
+        <div class="joystick-area">
+            <div class="joystick-base">
+                <div class="joystick-knob"></div>
+            </div>
+        </div>
+        <div class="buttons-area">
+            <button class="mobile-btn mobile-btn-large" id="mobile-shoot">🔫</button>
+            <div class="ability-row">
+                <button class="mobile-btn mobile-btn-small" id="mobile-freeze">❄️</button>
+                <button class="mobile-btn mobile-btn-small" id="mobile-aura">💫</button>
+                <button class="mobile-btn mobile-btn-small" id="mobile-decoy">👤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load all scripts in order (non-module) -->
+    <script src="js/MetaSystem.js"></script>
+    <script src="js/SpawnBudget.js"></script>
+    <script src="js/AudioSystem.js"></script>
+    <script src="js/World3D.js"></script>
+    <script src="js/Player.js"></script>
+    <script src="js/Enemy.js"></script>
+    <script src="js/Bullet.js"></script>
+    <script src="js/Collectible.js"></script>
+    <script src="js/Node.js"></script>
+    <script src="js/MobileControls.js"></script>
+    <script src="js/InputHandler.js"></script>
+    <script src="js/DifficultySystem.js"></script>
+    <script src="js/Director.js"></script>
+    <script src="js/LaserWeapon.js"></script>
+    <script src="js/LabelSystem.js"></script>
+    <script src="js/SingularitySequence.js"></script>
+    <script src="js/UIController.js"></script>
+    <script src="js/Game.js"></script>
+    <script>
+        // Service Worker Registration for PWA/Offline
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function (registration) {
+                        console.log('[PWA] Service Worker registered:', registration.scope);
+                    })
+                    .catch(function (error) {
+                        console.log('[PWA] Service Worker registration failed:', error);
+                    });
+            });
+        }
+
+        // Mobile Detection Helper
+        window.isMobileDevice = function () {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                ('ontouchstart' in window) ||
+                (navigator.maxTouchPoints > 0) ||
+                (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+        };
+
+        // Prevent default touch behaviors for game canvas
+        document.addEventListener('touchmove', function (e) {
+            if (e.target.closest('#game-canvas, .joystick-area, .buttons-area')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Game Initialization
+        window.addEventListener('DOMContentLoaded', function () {
+            try {
+                // Set mobile flag globally
+                window.IS_MOBILE = window.isMobileDevice();
+                console.log('[Init] Mobile device:', window.IS_MOBILE);
+
+                // Initialize game
+                window.game = new Game();
+                console.log('[Init] Game initialized successfully');
+
+                // Show mobile controls if on mobile
+                if (window.IS_MOBILE && window.game.input) {
+                    console.log('[Init] Enabling mobile controls');
+                }
+            } catch (e) {
+                console.error('[Init] Game init error:', e);
+                alert('Game failed to start: ' + e.message);
+            }
+        });
+    </script>
+</body>
+
+</html>

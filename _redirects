@@ -1,0 +1,10 @@
+# Netlify redirects - ensure static files are served directly
+# Do NOT redirect manifest.json, sw.js, or icons
+
+# Explicitly serve these files
+/manifest.json    /manifest.json    200
+/sw.js            /sw.js            200
+/icons/*          /icons/:splat     200
+
+# SPA fallback - only for routes that don't match files
+/*    /index.html   200
