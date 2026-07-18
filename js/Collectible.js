@@ -10,16 +10,16 @@ const COLLECTIBLE_CONFIGS = {
         geometry: 'sphere',
         size: 10
     },
-    boost: {
-        color: 0xbff7a6,
-        emissive: 0x4ade80,
-        geometry: 'diamond',
+    predictiveVector: {
+        color: 0x00ffcc,
+        emissive: 0x00ffcc,
+        geometry: 'torus',
         size: 11
     },
-    asteroid: {
-        color: 0x4b5563,
-        emissive: 0xf97316,
-        geometry: 'rock',
+    landmarkNode: {
+        color: 0x00ffff,
+        emissive: 0x00ffff,
+        geometry: 'octahedron',
         size: 12
     },
     burst: {
@@ -74,25 +74,29 @@ class Collectible {
         this.y = y;
         this.sector = sector;
         this.r = 10;
-        
+
         // Lifetime
         this.ttl = kind === 'burst' ? 10 + Math.random() * 6 : 12 + Math.random() * 10;
         this.spawnTime = performance.now() / 1000;
-        
+
         // Animation
         this.phase = Math.random() * Math.PI * 2;
-        
+
         // Create mesh
         this.createMesh();
     }
-    
+
     createMesh() {
         const config = COLLECTIBLE_CONFIGS[this.kind] || COLLECTIBLE_CONFIGS.energy;
         let geometry;
-        
+
         switch (config.geometry) {
             case 'diamond':
+            case 'octahedron':
                 geometry = new THREE.OctahedronGeometry(config.size, 0);
+                break;
+            case 'torus':
+                geometry = new THREE.TorusGeometry(config.size, 1.2, 8, 32);
                 break;
             case 'rock':
                 geometry = new THREE.DodecahedronGeometry(config.size, 0);
@@ -115,21 +119,29 @@ class Collectible {
             case 'toxic':
                 geometry = new THREE.IcosahedronGeometry(config.size, 0);
                 break;
-            default: // sphere
-                geometry = new THREE.SphereGeometry(config.size, 16, 16);
+            default: // sphere/energy - use DodecahedronGeometry for crystal look
+                geometry = new THREE.DodecahedronGeometry(config.size, 0);
         }
-        
-        const material = new THREE.MeshBasicMaterial({
+
+        const isWireframe = this.kind === 'landmarkNode';
+
+        // Use MeshStandardMaterial for high-quality lighting
+        const material = new THREE.MeshStandardMaterial({
             color: config.color,
+            emissive: config.emissive,
+            emissiveIntensity: isWireframe ? 0.8 : 0.4,
+            roughness: 0.3,
+            metalness: 0.6,
             transparent: true,
-            opacity: 0.95
+            opacity: 0.95,
+            wireframe: isWireframe
         });
-        
+
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.set(this.x, this.y, 0);
-        
-        // Add glow sphere for energy/boost types (NO PointLight - saves GPU)
-        if (['energy', 'boost', 'burst', 'glowingJuice'].includes(this.kind)) {
+
+        // Add glow sphere for energy/predictiveVector types (NO PointLight - saves GPU)
+        if (['energy', 'predictiveVector', 'burst', 'glowingJuice'].includes(this.kind)) {
             const glowGeometry = new THREE.SphereGeometry(config.size * 1.4, 6, 6);
             const glowMaterial = new THREE.MeshBasicMaterial({
                 color: config.emissive,
@@ -140,20 +152,7 @@ class Collectible {
             this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
             this.mesh.add(this.glow);
         }
-        
-        // Special decorations
-        if (this.kind === 'asteroid') {
-            // Add orange crack lines
-            const crackMaterial = new THREE.LineBasicMaterial({ color: 0xf97316 });
-            const crackGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-5, -3, config.size),
-                new THREE.Vector3(0, 0, config.size),
-                new THREE.Vector3(3, 4, config.size)
-            ]);
-            const crack = new THREE.Line(crackGeometry, crackMaterial);
-            this.mesh.add(crack);
-        }
-        
+
         if (this.kind === 'voidPlum') {
             // Add highlight
             const highlightGeo = new THREE.SphereGeometry(4, 8, 8);
@@ -166,7 +165,7 @@ class Collectible {
             highlight.position.set(-2, 2, 6);
             this.mesh.add(highlight);
         }
-        
+
         if (this.kind === 'toxicFruit') {
             // Add warning ring
             const ringGeo = new THREE.TorusGeometry(config.size + 2, 1, 4, 16);
@@ -179,40 +178,45 @@ class Collectible {
             this.warningRing.rotation.x = Math.PI / 2;
             this.mesh.add(this.warningRing);
         }
-        
+
         this.scene.add(this.mesh);
     }
-    
+
     update(dt, time, bounds) {
         this.ttl -= dt;
-        
+
         // Wobble movement
         const wobble = 4;
         this.x += Math.cos(time * 0.6 + this.x * 0.01) * wobble * dt;
         this.y += Math.sin(time * 0.7 + this.y * 0.009) * wobble * dt;
-        
+
         // Clamp to bounds
         this.x = Math.max(bounds.left + 40, Math.min(bounds.right - 40, this.x));
         this.y = Math.max(bounds.bottom + 40, Math.min(bounds.top - 40, this.y));
-        
+
         // Update mesh
         this.mesh.position.set(this.x, this.y, 0);
-        
+
         // Animate
         const pulse = 0.9 + 0.2 * Math.sin(time * 5 + this.phase);
         this.mesh.scale.setScalar(pulse);
-        this.mesh.rotation.y += dt * 2;
-        
+        if (this.kind === 'predictiveVector') {
+            this.mesh.rotation.x += dt * 1.5;
+            this.mesh.rotation.y += dt * 2.0;
+        } else {
+            this.mesh.rotation.y += dt * 2;
+        }
+
         // Animate glow
         if (this.glow) {
             this.glow.material.opacity = 0.15 + 0.1 * Math.sin(time * 3);
         }
-        
+
         // Animate warning ring for toxic
         if (this.warningRing) {
             this.warningRing.rotation.z += dt * 3;
         }
-        
+
         // Fade when dying
         if (this.ttl < 2) {
             const fade = this.ttl / 2;
@@ -220,11 +224,11 @@ class Collectible {
             if (this.glow) this.glow.material.opacity = 0.3 * fade;
         }
     }
-    
+
     isAlive() {
         return this.ttl > 0;
     }
-    
+
     dispose() {
         this.scene.remove(this.mesh);
         this.mesh.traverse(obj => {
@@ -242,25 +246,25 @@ class CollectibleManager {
         this.scene = scene;
         this.collectibles = [];
     }
-    
+
     spawn(kind, x, y, sector) {
         const collectible = new Collectible(this.scene, kind, x, y, sector);
         this.collectibles.push(collectible);
         return collectible;
     }
-    
+
     update(dt, time, bounds) {
         for (let i = this.collectibles.length - 1; i >= 0; i--) {
             const c = this.collectibles[i];
             c.update(dt, time, bounds);
-            
+
             if (!c.isAlive()) {
                 c.dispose();
                 this.collectibles.splice(i, 1);
             }
         }
     }
-    
+
     remove(collectible) {
         const idx = this.collectibles.indexOf(collectible);
         if (idx !== -1) {
@@ -268,7 +272,7 @@ class CollectibleManager {
             this.collectibles.splice(idx, 1);
         }
     }
-    
+
     getCounts() {
         const counts = {};
         for (const c of this.collectibles) {
@@ -276,12 +280,12 @@ class CollectibleManager {
         }
         return counts;
     }
-    
+
     clear() {
         this.collectibles.forEach(c => c.dispose());
         this.collectibles = [];
     }
-    
+
     dispose() {
         this.clear();
     }

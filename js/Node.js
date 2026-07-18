@@ -27,106 +27,221 @@ class GameNode {
         // Main group
         this.group = new THREE.Group();
         this.group.position.set(this.x, this.y, 0);
-        
-        // Outer shield sphere
-        const shieldGeometry = new THREE.SphereGeometry(this.shieldR, 32, 32);
-        const shieldMaterial = new THREE.MeshBasicMaterial({
-            color: 0xf87171,
-            transparent: true,
-            opacity: 0.15,
-            side: THREE.DoubleSide
-        });
-        this.shield = new THREE.Mesh(shieldGeometry, shieldMaterial);
-        this.group.add(this.shield);
-        
-        // Shield wireframe
-        const wireGeometry = new THREE.SphereGeometry(this.shieldR, 16, 16);
-        const wireMaterial = new THREE.MeshBasicMaterial({
-            color: 0xf87171,
-            transparent: true,
-            opacity: 0.4,
-            wireframe: true
-        });
-        this.shieldWire = new THREE.Mesh(wireGeometry, wireMaterial);
-        this.group.add(this.shieldWire);
-        
-        // Inner corrupted core
-        const coreGeometry = new THREE.IcosahedronGeometry(this.shieldR * 0.55, 1);
-        const coreMaterial = new THREE.MeshPhongMaterial({
-            color: 0x941b36,
-            emissive: 0x7f1d1d,
-            emissiveIntensity: 0.5,
-            shininess: 20,
-            flatShading: true
-        });
-        this.core = new THREE.Mesh(coreGeometry, coreMaterial);
-        this.group.add(this.core);
-        
-        // Central energy sphere (hp indicator)
-        const energyGeometry = new THREE.SphereGeometry(this.coreR, 16, 16);
-        const energyMaterial = new THREE.MeshBasicMaterial({
-            color: 0xfca5a5,
-            transparent: true,
-            opacity: 0.9
-        });
-        this.energy = new THREE.Mesh(energyGeometry, energyMaterial);
-        this.group.add(this.energy);
-        
-        // Rotating ring
-        const ringGeometry = new THREE.TorusGeometry(this.shieldR * 0.7, 2, 8, 32);
-        const ringMaterial = new THREE.MeshBasicMaterial({
-            color: 0xf87171,
-            transparent: true,
-            opacity: 0.6
-        });
-        this.ring1 = new THREE.Mesh(ringGeometry, ringMaterial);
-        this.ring1.rotation.x = Math.PI / 2;
-        this.group.add(this.ring1);
-        
-        // Second ring (perpendicular)
-        this.ring2 = new THREE.Mesh(ringGeometry.clone(), ringMaterial.clone());
-        this.ring2.rotation.y = Math.PI / 2;
-        this.group.add(this.ring2);
-        
-        // Point lights
-        this.coreLight = new THREE.PointLight(0xf87171, 1, 100);
-        this.group.add(this.coreLight);
+
+        const isSingularity = this.sector === 20;
+
+        if (isSingularity) {
+            // Central black sphere (event horizon)
+            const coreGeometry = new THREE.SphereGeometry(this.coreR * 1.5, 32, 32);
+            const coreMaterial = new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                transparent: true,
+                opacity: 0.95
+            });
+            this.core = new THREE.Mesh(coreGeometry, coreMaterial);
+            this.group.add(this.core);
+
+            // Outer shield (accretion disk glow)
+            const shieldGeometry = new THREE.SphereGeometry(this.shieldR, 32, 32);
+            const shieldMaterial = new THREE.MeshBasicMaterial({
+                color: 0x7c3aed, // deep violet
+                transparent: true,
+                opacity: 0.25,
+                side: THREE.DoubleSide
+            });
+            this.shield = new THREE.Mesh(shieldGeometry, shieldMaterial);
+            this.group.add(this.shield);
+
+            // Shield wireframe
+            const wireGeometry = new THREE.SphereGeometry(this.shieldR, 16, 16);
+            const wireMaterial = new THREE.MeshBasicMaterial({
+                color: 0x8b5cf6, // violet
+                transparent: true,
+                opacity: 0.5,
+                wireframe: true
+            });
+            this.shieldWire = new THREE.Mesh(wireGeometry, wireMaterial);
+            this.group.add(this.shieldWire);
+
+            // Inner energy indicator
+            const energyGeometry = new THREE.SphereGeometry(this.coreR, 16, 16);
+            const energyMaterial = new THREE.MeshBasicMaterial({
+                color: 0xd8b4fe, // glowing pale purple
+                transparent: true,
+                opacity: 0.9
+            });
+            this.energy = new THREE.Mesh(energyGeometry, energyMaterial);
+            this.group.add(this.energy);
+
+            // Torus rings representing accretion disk
+            const ringGeometry = new THREE.TorusGeometry(this.shieldR * 0.8, 1.5, 8, 32);
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color: 0xa78bfa, // light purple
+                transparent: true,
+                opacity: 0.7
+            });
+            this.ring1 = new THREE.Mesh(ringGeometry, ringMaterial);
+            this.ring1.rotation.x = Math.PI / 2;
+            this.group.add(this.ring1);
+
+            this.ring2 = new THREE.Mesh(ringGeometry.clone(), ringMaterial.clone());
+            this.ring2.rotation.y = Math.PI / 2;
+            this.group.add(this.ring2);
+
+            // Point light
+            this.coreLight = new THREE.PointLight(0xa78bfa, 2, 150);
+            this.group.add(this.coreLight);
+        } else {
+            // Outer shield sphere
+            const shieldGeometry = new THREE.SphereGeometry(this.shieldR, 32, 32);
+            const shieldMaterial = new THREE.MeshBasicMaterial({
+                color: 0xf87171,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
+            });
+            this.shield = new THREE.Mesh(shieldGeometry, shieldMaterial);
+            this.group.add(this.shield);
+
+            // Shield wireframe
+            const wireGeometry = new THREE.SphereGeometry(this.shieldR, 16, 16);
+            const wireMaterial = new THREE.MeshBasicMaterial({
+                color: 0xf87171,
+                transparent: true,
+                opacity: 0.4,
+                wireframe: true
+            });
+            this.shieldWire = new THREE.Mesh(wireGeometry, wireMaterial);
+            this.group.add(this.shieldWire);
+
+            // Inner corrupted core
+            const coreGeometry = new THREE.IcosahedronGeometry(this.shieldR * 0.55, 1);
+            const coreMaterial = new THREE.MeshPhongMaterial({
+                color: 0x941b36,
+                emissive: 0x7f1d1d,
+                emissiveIntensity: 0.5,
+                shininess: 20,
+                flatShading: true
+            });
+            this.core = new THREE.Mesh(coreGeometry, coreMaterial);
+            this.group.add(this.core);
+
+            // Central energy sphere (hp indicator)
+            const energyGeometry = new THREE.SphereGeometry(this.coreR, 16, 16);
+            const energyMaterial = new THREE.MeshBasicMaterial({
+                color: 0xfca5a5,
+                transparent: true,
+                opacity: 0.9
+            });
+            this.energy = new THREE.Mesh(energyGeometry, energyMaterial);
+            this.group.add(this.energy);
+
+            // Rotating ring
+            const ringGeometry = new THREE.TorusGeometry(this.shieldR * 0.7, 2, 8, 32);
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color: 0xf87171,
+                transparent: true,
+                opacity: 0.6
+            });
+            this.ring1 = new THREE.Mesh(ringGeometry, ringMaterial);
+            this.ring1.rotation.x = Math.PI / 2;
+            this.group.add(this.ring1);
+
+            // Second ring (perpendicular)
+            this.ring2 = new THREE.Mesh(ringGeometry.clone(), ringMaterial.clone());
+            this.ring2.rotation.y = Math.PI / 2;
+            this.group.add(this.ring2);
+
+            // Point lights
+            this.coreLight = new THREE.PointLight(0xf87171, 1, 100);
+            this.group.add(this.coreLight);
+        }
         
         this.scene.add(this.group);
     }
     
-    update(dt, time) {
+    update(dt, time, player, boids) {
         this.pulsePhase = time;
-        
-        // Pulse based on HP
-        const hpRatio = Math.max(0, Math.min(1, this.hp / this.maxHp));
-        const pulse = 0.7 + 0.3 * Math.sin(time * 3);
-        
-        // Animate shield
-        this.shield.material.opacity = 0.1 + 0.1 * pulse;
-        this.shieldWire.rotation.y += dt * 0.3;
-        this.shieldWire.rotation.x += dt * 0.2;
-        
-        // Animate core
-        this.core.rotation.y += dt * 0.5;
-        this.core.rotation.x += dt * 0.3;
-        
-        // Energy sphere scales with HP
-        const energyScale = 0.4 + 0.6 * hpRatio;
-        this.energy.scale.setScalar(energyScale * pulse);
-        
-        // Rings rotate
-        this.ring1.rotation.z += dt * 1.5;
-        this.ring2.rotation.z -= dt * 1.2;
-        
-        // Light intensity based on HP
-        this.coreLight.intensity = 0.5 + 0.5 * hpRatio;
-        
-        // Color shift as HP decreases
-        if (hpRatio < 0.3) {
-            // Weak - flicker
-            const flicker = Math.random() > 0.5 ? 0.3 : 0.6;
-            this.shield.material.opacity = flicker * 0.2;
+
+        const isSingularity = this.sector === 20;
+
+        if (isSingularity) {
+            // Visual expansion
+            this.singularityScale = (this.singularityScale || 1.0) + dt * 0.08;
+            const currentScale = Math.min(3.5, this.singularityScale);
+            this.group.scale.setScalar(currentScale);
+
+            // Animate shield & core rotations
+            this.shieldWire.rotation.y += dt * 0.4;
+            this.shieldWire.rotation.x += dt * 0.2;
+            if (this.core) {
+                this.core.rotation.y += dt * 0.6;
+                this.core.rotation.x += dt * 0.4;
+            }
+
+            // Rings rotate
+            this.ring1.rotation.z += dt * 2.0;
+            this.ring2.rotation.z -= dt * 1.5;
+
+            // Point light pulsation
+            this.coreLight.intensity = 1.5 + 0.5 * Math.sin(time * 4);
+
+            // Operational attraction loop toward (0,0,0)
+            if (player) {
+                const px = player.x;
+                const py = player.y;
+                const distPlayer = Math.hypot(px, py);
+                if (distPlayer > 5) {
+                    const pullForce = Math.min(100, 1500 / (distPlayer + 10));
+                    player.x -= (px / distPlayer) * pullForce * dt;
+                    player.y -= (py / distPlayer) * pullForce * dt;
+                }
+            }
+
+            if (boids && Array.isArray(boids)) {
+                for (let i = 0; i < boids.length; i++) {
+                    const b = boids[i];
+                    const bx = b.x;
+                    const by = b.y;
+                    const distBoid = Math.hypot(bx, by);
+                    if (distBoid > 5) {
+                        const pullForce = Math.min(120, 1800 / (distBoid + 10));
+                        b.x -= (bx / distBoid) * pullForce * dt;
+                        b.y -= (by / distBoid) * pullForce * dt;
+                    }
+                }
+            }
+        } else {
+            // Pulse based on HP
+            const hpRatio = Math.max(0, Math.min(1, this.hp / this.maxHp));
+            const pulse = 0.7 + 0.3 * Math.sin(time * 3);
+
+            // Animate shield
+            this.shield.material.opacity = 0.1 + 0.1 * pulse;
+            this.shieldWire.rotation.y += dt * 0.3;
+            this.shieldWire.rotation.x += dt * 0.2;
+
+            // Animate core
+            this.core.rotation.y += dt * 0.5;
+            this.core.rotation.x += dt * 0.3;
+
+            // Energy sphere scales with HP
+            const energyScale = 0.4 + 0.6 * hpRatio;
+            this.energy.scale.setScalar(energyScale * pulse);
+
+            // Rings rotate
+            this.ring1.rotation.z += dt * 1.5;
+            this.ring2.rotation.z -= dt * 1.2;
+
+            // Light intensity based on HP
+            this.coreLight.intensity = 0.5 + 0.5 * hpRatio;
+
+            // Color shift as HP decreases
+            if (hpRatio < 0.3) {
+                // Weak - flicker
+                const flicker = Math.random() > 0.5 ? 0.3 : 0.6;
+                this.shield.material.opacity = flicker * 0.2;
+            }
         }
     }
     
@@ -176,9 +291,9 @@ class NodeManager {
         return node;
     }
     
-    update(dt, time) {
+    update(dt, time, player, enemies) {
         for (const node of this.nodes) {
-            node.update(dt, time);
+            node.update(dt, time, player, enemies);
         }
     }
     

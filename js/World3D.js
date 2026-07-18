@@ -19,10 +19,20 @@ class World3D {
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x010a13, 0.001);
 
-    // Camera - orthographic-like perspective for arcade feel
+    // Camera - responsive FOV based on aspect ratio
+    // Prevents stretching on 21:9 ultra-wide phones
+    const aspectRatio = this.width / this.height;
+    const baseFOV = 60;
+    // Widen FOV for ultra-wide screens (>16:9), narrow for tall screens (<16:9)
+    const responsiveFOV = aspectRatio > 1.78
+      ? baseFOV + (aspectRatio - 1.78) * 15   // Ultra-wide: increase FOV
+      : aspectRatio < 0.56
+        ? baseFOV - 10                        // Very tall: decrease FOV
+        : baseFOV;                            // Standard: use base
+
     this.camera = new THREE.PerspectiveCamera(
-      60,
-      this.width / this.height,
+      Math.min(90, Math.max(45, responsiveFOV)), // Clamp 45-90
+      aspectRatio,
       0.1,
       2000
     );
@@ -352,12 +362,16 @@ class World3D {
   }
 
   createPlanet() {
-    // Main planet sphere
+    // Main planet sphere - PBR with clearcoat for reflective surface
     const planetGeometry = new THREE.SphereGeometry(80, 32, 32);
-    const planetMaterial = new THREE.MeshPhongMaterial({
+    const planetMaterial = new THREE.MeshPhysicalMaterial({
       color: 0x1a1a2e,
       emissive: 0x0a0a15,
-      shininess: 10,
+      emissiveIntensity: 0.3,
+      metalness: 0.4,
+      roughness: 0.6,
+      clearcoat: 0.8,
+      clearcoatRoughness: 0.3
     });
 
     this.planet = new THREE.Mesh(planetGeometry, planetMaterial);
@@ -378,12 +392,29 @@ class World3D {
     this.planetRing.rotation.x = Math.PI / 2.5;
     this.scene.add(this.planetRing);
 
-    // Glow effect
+    // ========================================
+    // FRESNEL ATMOSPHERE: Outer glow for light scattering
+    // Simulates atmospheric haze around planet
+    // ========================================
+    const atmosphereGeometry = new THREE.SphereGeometry(95, 32, 32);
+    const atmosphereMaterial = new THREE.MeshBasicMaterial({
+      color: 0x88ddff,
+      transparent: true,
+      opacity: 0.1,
+      side: THREE.BackSide,  // Render inside for glow effect
+      blending: THREE.AdditiveBlending
+    });
+    this.atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+    this.atmosphere.position.copy(this.planet.position);
+    this.scene.add(this.atmosphere);
+
+    // Inner glow effect
     const glowGeometry = new THREE.SphereGeometry(90, 32, 32);
     const glowMaterial = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
       opacity: 0.15,
+      blending: THREE.AdditiveBlending
     });
 
     this.planetGlow = new THREE.Mesh(glowGeometry, glowMaterial);
@@ -470,10 +501,61 @@ class World3D {
     this.shakeIntensity = Math.max(this.shakeIntensity, intensity);
   }
 
-  update(time, deltaTime) {
-    // Rotate starfield slowly
+  update(time, deltaTime, playerPos = null, playerVelocity = null) {
+    // ========================================
+    // GRAVITATIONAL TIME DILATION (Relativity)
+    // Time slows near center (0,0,0) - the singularity
+    // ========================================
+    let timeDilation = 1.0;
+    if (playerPos) {
+      const distToCenter = Math.hypot(playerPos.x, playerPos.y) + 50; // +50 prevents div/0
+      timeDilation = Math.max(0.3, 1.0 - (30 / distToCenter)); // Min 30% speed near center
+
+      // GRAVITATIONAL REDSHIFT: Tint scene red near singularity
+      const redshiftIntensity = Math.max(0, 1.0 - distToCenter / 200);
+      if (this.ambientLight && redshiftIntensity > 0.01) {
+        const r = 0.6 + redshiftIntensity * 0.4;
+        const g = 0.6 - redshiftIntensity * 0.3;
+        const b = 0.8 - redshiftIntensity * 0.5;
+        this.ambientLight.color.setRGB(r, g, b);
+      }
+    }
+    this.timeDilation = timeDilation;
+
+    // ========================================
+    // SPECTRAL DOPPLER SHIFT (Special Relativity)
+    // Stars shift blue in front, red behind based on velocity
+    // ========================================
+    if (this.starfield && playerVelocity) {
+      const speed = Math.hypot(playerVelocity.x, playerVelocity.y);
+      const moveAngle = Math.atan2(playerVelocity.y, playerVelocity.x);
+
+      // Apply per-star color shift based on relative angle
+      const positions = this.starfield.geometry.attributes.position.array;
+      const colors = this.starfield.geometry.attributes.color;
+
+      if (colors && speed > 20) {
+        const shiftIntensity = Math.min(1.0, speed / 300);
+        for (let i = 0; i < positions.length / 3; i++) {
+          const starX = positions[i * 3];
+          const starY = positions[i * 3 + 1];
+          const starAngle = Math.atan2(starY, starX);
+          const relAngle = Math.cos(starAngle - moveAngle); // -1 behind, +1 ahead
+
+          // Blueshift ahead, redshift behind
+          const r = 0.9 - relAngle * shiftIntensity * 0.3;
+          const g = 0.9;
+          const b = 0.9 + relAngle * shiftIntensity * 0.3;
+
+          colors.setXYZ(i, r, g, b);
+        }
+        colors.needsUpdate = true;
+      }
+    }
+
+    // Rotate starfield slowly (apply time dilation)
     if (this.starfield) {
-      this.starfield.rotation.z += deltaTime * 0.01;
+      this.starfield.rotation.z += deltaTime * timeDilation * 0.01;
     }
 
     // Animate planet
@@ -711,5 +793,74 @@ class World3D {
       </div>
     `;
     document.body.appendChild(errorDiv);
+  }
+
+  // ========================================
+  // FLOATING ORIGIN: IEEE-754 Precision Fix
+  // When player > 5000 units from origin, shift entire world
+  // This prevents floating-point precision loss in Raycaster
+  // ========================================
+  applyFloatingOrigin(playerPos, entities) {
+    const ORIGIN_THRESHOLD = 5000;
+    const distance = Math.hypot(playerPos.x, playerPos.y);
+
+    if (distance < ORIGIN_THRESHOLD) {
+      return { shifted: false, offset: { x: 0, y: 0 } };
+    }
+
+    // Calculate offset to shift everything back to origin
+    const offset = { x: playerPos.x, y: playerPos.y };
+
+    console.log(`[FloatingOrigin] Shifting world by (${offset.x.toFixed(0)}, ${offset.y.toFixed(0)})`);
+
+    // Shift all entities in the scene
+    if (entities.enemies) {
+      for (const enemy of entities.enemies) {
+        if (enemy && enemy.active !== false) {
+          enemy.x -= offset.x;
+          enemy.y -= offset.y;
+          if (enemy.mesh) {
+            enemy.mesh.position.x -= offset.x;
+            enemy.mesh.position.y -= offset.y;
+          }
+        }
+      }
+    }
+
+    if (entities.bullets) {
+      for (const bullet of entities.bullets) {
+        if (bullet) {
+          bullet.x -= offset.x;
+          bullet.y -= offset.y;
+          if (bullet.mesh) {
+            bullet.mesh.position.x -= offset.x;
+            bullet.mesh.position.y -= offset.y;
+          }
+        }
+      }
+    }
+
+    if (entities.collectibles) {
+      for (const collectible of entities.collectibles) {
+        if (collectible) {
+          collectible.x -= offset.x;
+          collectible.y -= offset.y;
+          if (collectible.mesh) {
+            collectible.mesh.position.x -= offset.x;
+            collectible.mesh.position.y -= offset.y;
+          }
+        }
+      }
+    }
+
+    // Shift impact particles
+    for (const p of this.impactPool) {
+      if (p.active && p.mesh) {
+        p.mesh.position.x -= offset.x;
+        p.mesh.position.y -= offset.y;
+      }
+    }
+
+    return { shifted: true, offset: offset };
   }
 }

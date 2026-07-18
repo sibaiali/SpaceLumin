@@ -398,6 +398,31 @@ class Player {
         this.engine.material.opacity = enginePulse;
         this.engine.scale.setScalar(0.8 + speed * 0.002);
 
+        // ========================================
+        // SPACE WIND WOBBLE: Procedural ship animation
+        // Creates organic "floating in space" feel
+        // ========================================
+        const wobbleX = Math.sin(time * 2.3) * 0.015;
+        const wobbleY = Math.sin(time * 1.7) * 0.012;
+        const wobbleZ = Math.sin(time * 3.1) * 0.008;
+        this.mesh.rotation.x += wobbleX;
+        this.mesh.rotation.y += wobbleY;
+        this.mesh.rotation.z += wobbleZ;
+
+        // ========================================
+        // GHOST TRAIL: Velocity-scaled afterimage
+        // Gets longer and brighter as speed increases
+        // ========================================
+        const trailIntensity = Math.min(1.0, speed / 200);
+        for (let i = 0; i < this.trailMeshes.length; i++) {
+            const t = this.trailMeshes[i];
+            if (t) {
+                const age = i / this.trailMeshes.length;
+                t.material.opacity = trailIntensity * (1 - age) * 0.4;
+                t.scale.setScalar(1 - age * 0.5);
+            }
+        }
+
         // Update combo timer
         if (this.combo > 1 && time > this.comboUntil) {
             this.combo = 1;

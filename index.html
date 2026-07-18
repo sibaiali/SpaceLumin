@@ -51,7 +51,8 @@
                 <button id="btn-settings" class="menu-btn"><span>⚙ Settings</span></button>
             </div>
             <div class="mt-4 border-t border-slate-700 pt-3">
-                <div class="text-xs text-center text-slate-500">v3.0 · 3D Hextech Core</div>
+                <div id="version-text" class="text-xs text-center text-slate-500"
+                    style="cursor:pointer;user-select:none;">v4.0 · Elemental Odyssey</div>
             </div>
             <div class="mt-2 stats-line" id="highscore-line">High-Archive: 0 💎</div>
             <div class="mt-1 stats-line" id="meta-line">Archive Shards: 0 ✶</div>
@@ -227,13 +228,62 @@
         </div>
     </div>
 
+    <!-- Developer Debug Overlay (Hidden by default) -->
+    <div id="dev-overlay"
+        style="display:none;position:fixed;top:10px;right:10px;width:320px;max-height:80vh;overflow-y:auto;background:rgba(0,0,0,0.95);border:1px solid #785a28;border-radius:8px;padding:16px;font-family:monospace;font-size:11px;color:#22d3ee;z-index:10000;">
+        <div
+            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #333;padding-bottom:8px;">
+            <span style="color:#c8aa6e;font-weight:bold;">🧠 NEURAL TELEMETRY</span>
+            <button id="dev-close"
+                style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;">✕</button>
+        </div>
+        <div id="dev-telemetry" style="margin-bottom:12px;">
+            <div style="color:#94a3b8;">Jerk Score: <span id="dev-jerk" style="color:#22d3ee;">--</span></div>
+            <div style="color:#94a3b8;">Entropy Score: <span id="dev-entropy" style="color:#22d3ee;">--</span></div>
+            <div style="color:#94a3b8;">Chaos Factor: <span id="dev-chaos" style="color:#f97316;">--</span></div>
+            <div style="color:#94a3b8;">Playstyle: <span id="dev-playstyle" style="color:#a855f7;">--</span></div>
+        </div>
+        <div style="border-top:1px solid #333;padding-top:8px;margin-bottom:12px;">
+            <span style="color:#c8aa6e;font-weight:bold;">🧬 DNA EVOLUTION</span>
+        </div>
+        <div id="dev-dna">
+            <div style="color:#94a3b8;">Generation: <span id="dev-gen" style="color:#22c55e;">--</span></div>
+            <div style="color:#94a3b8;">Pool Size: <span id="dev-pool" style="color:#22d3ee;">--</span></div>
+            <div style="color:#94a3b8;">Avg Speed Gene: <span id="dev-speed" style="color:#f97316;">--</span></div>
+            <div style="color:#94a3b8;">Avg Aggro Gene: <span id="dev-aggro" style="color:#ef4444;">--</span></div>
+        </div>
+        <div style="border-top:1px solid #333;padding-top:8px;margin-top:12px;">
+            <span style="color:#c8aa6e;font-weight:bold;">🌍 SECTOR</span>
+        </div>
+        <div id="dev-sector">
+            <div style="color:#94a3b8;">Element: <span id="dev-element" style="color:#88ddff;">--</span></div>
+            <div style="color:#94a3b8;">Nebula Drag: <span id="dev-drag" style="color:#22d3ee;">--</span></div>
+            <div style="color:#94a3b8;">Separation: <span id="dev-sep" style="color:#22c55e;">--</span></div>
+        </div>
+        <div style="border-top:1px solid #333;padding-top:8px;margin-top:12px;margin-bottom:8px;">
+            <span style="color:#c8aa6e;font-weight:bold;">🔮 PREDICTIVE AI</span>
+        </div>
+        <div id="dev-predict">
+            <div style="color:#94a3b8;">Collision Risk: <span id="dev-collision" style="color:#f97316;">--</span></div>
+            <div style="color:#94a3b8;">MissedBurst Risk: <span id="dev-missed" style="color:#ef4444;">--</span></div>
+            <div style="color:#94a3b8;">Panic Risk: <span id="dev-panic" style="color:#a855f7;">--</span></div>
+            <div style="color:#94a3b8;">Transitions: <span id="dev-transitions" style="color:#22d3ee;">--</span></div>
+        </div>
+        <div style="margin-top:12px;padding-top:8px;border-top:1px solid #333;font-size:9px;color:#64748b;">Press ESC or
+            click ✕ to close</div>
+    </div>
+
     <!-- Load all scripts in order (non-module) -->
     <script src="js/MetaSystem.js"></script>
     <script src="js/SpawnBudget.js"></script>
     <script src="js/AudioSystem.js"></script>
+    <script src="js/PredictiveAI.js"></script>
+    <script src="js/TelemetryService.js"></script>
+    <script src="js/EnemyDNA.js"></script>
     <script src="js/World3D.js"></script>
     <script src="js/Player.js"></script>
     <script src="js/Enemy.js"></script>
+    <script src="js/EnemyPool.js"></script>
     <script src="js/Bullet.js"></script>
     <script src="js/Collectible.js"></script>
     <script src="js/Node.js"></script>
@@ -245,6 +295,11 @@
     <script src="js/LabelSystem.js"></script>
     <script src="js/SingularitySequence.js"></script>
     <script src="js/UIController.js"></script>
+    <script src="js/NystromKernel.js"></script>
+    <script src="js/KernelMapper.js"></script>
+    <script src="js/NeuroFlowController.js"></script>
+    <script src="js/CognitiveOverloadDetector.js"></script>
+    <script src="js/GhostConsole.js"></script>
     <script src="js/Game.js"></script>
     <script>
         // Service Worker Registration for PWA/Offline
@@ -290,6 +345,95 @@
                 if (window.IS_MOBILE && window.game.input) {
                     console.log('[Init] Enabling mobile controls');
                 }
+
+                // ========================================
+                // DEVELOPER MODE: available only in an explicit development context
+                // ========================================
+                let devClickCount = 0;
+                let devClickTimeout = null;
+                const developerModeEnabled = ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
+                    new URLSearchParams(window.location.search).get('dev') === '1';
+
+                const versionText = document.getElementById('version-text');
+                const devOverlay = document.getElementById('dev-overlay');
+                const devClose = document.getElementById('dev-close');
+
+                if (!developerModeEnabled && devOverlay) {
+                    devOverlay.remove();
+                }
+
+                if (developerModeEnabled && versionText && devOverlay) {
+                    versionText.addEventListener('click', function () {
+                        devClickCount++;
+                        clearTimeout(devClickTimeout);
+                        devClickTimeout = setTimeout(() => { devClickCount = 0; }, 2000);
+
+                        if (devClickCount >= 7) {
+                            devOverlay.style.display = 'block';
+                            console.log('[Dev] Neural Telemetry Overlay activated');
+                        }
+                    });
+                }
+
+                if (devClose) {
+                    devClose.addEventListener('click', function () {
+                        devOverlay.style.display = 'none';
+                    });
+                }
+
+                // ESC to close dev overlay
+                // Shift+Alt+L → Ghost Console (Canvas HUD, localhost only)
+                window.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape' && devOverlay && devOverlay.style.display === 'block') {
+                        devOverlay.style.display = 'none';
+                    }
+                    // GhostConsole handles its own Shift+Alt+L listener;
+                    // this block keeps the legacy ESC handler for the div overlay.
+                });
+
+                // ========================================
+                // TELEMETRY UPDATE LOOP: Update overlay every 500ms
+                // ========================================
+                setInterval(function () {
+                    if (!devOverlay || devOverlay.style.display === 'none') return;
+
+                    // Update Telemetry
+                    if (typeof telemetryService !== 'undefined') {
+                        const metrics = telemetryService.getMetrics();
+                        document.getElementById('dev-jerk').textContent = metrics.jerkScore;
+                        document.getElementById('dev-entropy').textContent = metrics.entropyScore;
+                        document.getElementById('dev-chaos').textContent = metrics.chaosFactor;
+                        document.getElementById('dev-playstyle').textContent = metrics.playstyle;
+                    }
+
+                    // Update DNA
+                    if (typeof enemyDNA !== 'undefined') {
+                        const dnaStats = enemyDNA.getStats();
+                        document.getElementById('dev-gen').textContent = dnaStats.generation;
+                        document.getElementById('dev-pool').textContent = dnaStats.poolSize;
+                        document.getElementById('dev-speed').textContent = dnaStats.averageGenes.speed;
+                        document.getElementById('dev-aggro').textContent = dnaStats.averageGenes.aggro;
+                    }
+
+                    // Update Sector
+                    if (typeof difficultySystem !== 'undefined') {
+                        const params = difficultySystem.getParams();
+                        document.getElementById('dev-element').textContent = params.element || '--';
+                        document.getElementById('dev-drag').textContent = params.nebulaDrag || '--';
+                        document.getElementById('dev-sep').textContent = params.separationDistance || '--';
+                    }
+
+                    // Update Predictive AI
+                    if (typeof predictiveAI !== 'undefined') {
+                        const pred = predictiveAI.predict();
+                        const fmt = v => (v * 100).toFixed(0) + '%';
+                        document.getElementById('dev-collision').textContent = fmt(pred.collisionRisk);
+                        document.getElementById('dev-missed').textContent = fmt(pred.missedBurstRisk);
+                        document.getElementById('dev-panic').textContent = fmt(pred.panicRisk);
+                        document.getElementById('dev-transitions').textContent = predictiveAI.totalTransitions;
+                    }
+                }, 500);
+
             } catch (e) {
                 console.error('[Init] Game init error:', e);
                 alert('Game failed to start: ' + e.message);

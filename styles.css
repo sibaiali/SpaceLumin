@@ -246,7 +246,7 @@ input[type="checkbox"] {
 
 #top-hud {
   position: absolute;
-  top: 1rem;
+  top: calc(1rem + env(safe-area-inset-top, 0px));
   left: 0;
   right: 0;
   display: flex;

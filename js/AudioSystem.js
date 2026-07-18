@@ -79,6 +79,30 @@ class AudioSystem {
             // Kick for rhythm
             this.kickSynth = new Tone.MembraneSynth().toDestination();
 
+            // ========================================
+            // VACUUM FILTER: Space realism
+            // Low-pass filter simulates sound traveling through hull, not air
+            // Explosions are muffled "thuds" - scientifically accurate
+            // ========================================
+            this.vacuumFilter = new Tone.Filter({
+                type: 'lowpass',
+                frequency: 400,      // Cut high frequencies
+                rolloff: -24,        // Steep rolloff
+                Q: 0.5
+            }).toDestination();
+
+            // Connect impact sounds through vacuum filter
+            this.sounds.impact.disconnect();
+            this.sounds.impact.connect(this.vacuumFilter);
+
+            // Create vacuum explosion channel
+            this.vacuumExplosion = new Tone.MembraneSynth({
+                pitchDecay: 0.1,
+                octaves: 3,
+                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 0.6 }
+            }).connect(this.vacuumFilter);
+            this.vacuumExplosion.volume.value = -8;
+
             // Ambient pad with deeper reverb
             const reverb = new Tone.Reverb(6).toDestination();
             this.ambFilter = new Tone.AutoFilter("4n").connect(reverb);
@@ -201,6 +225,17 @@ class AudioSystem {
         if (!this.ready || !this.sfxOn) return;
         // Glowing impact explosion
         this.sounds.impact.triggerAttackRelease("G2", "8n");
+    }
+
+    // ========================================
+    // VACUUM EXPLOSION: Scientific realism
+    // Sound travels through hull, not air - muffled "thud"
+    // ========================================
+    playVacuumExplosion(note = "C2") {
+        if (!this.ready || !this.sfxOn) return;
+        if (this.vacuumExplosion) {
+            this.vacuumExplosion.triggerAttackRelease(note, "4n");
+        }
     }
 
     playWhoosh() {

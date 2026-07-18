@@ -8,7 +8,7 @@ class SpawnBudget {
         // Budget limits per category
         this.limits = {
             collectibles: 6,
-            asteroids: 10,
+            landmarkNodes: 10,
             enemies: 12,
             projectiles: 40,
             particles: 800
@@ -17,7 +17,7 @@ class SpawnBudget {
         // Current counts
         this.counts = {
             collectibles: 0,
-            asteroids: 0,
+            landmarkNodes: 0,
             enemies: 0,
             projectiles: 0,
             particles: 0
@@ -35,13 +35,13 @@ class SpawnBudget {
         this.performanceMode = enabled;
         if (enabled) {
             this.limits.collectibles = 4;
-            this.limits.asteroids = 6;
+            this.limits.landmarkNodes = 6;
             this.limits.enemies = 8;
             this.limits.projectiles = 25;
             this.limits.particles = 400;
         } else {
             this.limits.collectibles = 6;
-            this.limits.asteroids = 10;
+            this.limits.landmarkNodes = 10;
             this.limits.enemies = 12;
             this.limits.projectiles = 40;
             this.limits.particles = 800;
@@ -150,7 +150,7 @@ class SpawnBudget {
     reset() {
         this.counts = {
             collectibles: 0,
-            asteroids: 0,
+            landmarkNodes: 0,
             enemies: 0,
             projectiles: 0,
             particles: 0

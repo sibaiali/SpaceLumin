@@ -6,8 +6,8 @@
 // Spawn configuration
 const SPAWN_CONFIG = [
     { kind: 'energy', max: 6, chance: 0.55, type: 'basic' },
-    { kind: 'boost', max: 3, chance: 0.25, type: 'basic' },
-    { kind: 'asteroid', max: 4, chance: 0.22, type: 'night' },
+    { kind: 'predictiveVector', max: 3, chance: 0.25, type: 'basic' },
+    { kind: 'landmarkNode', max: 4, chance: 0.22, type: 'night' },
     { kind: 'shield', max: 2, chance: 0.12, type: 'flat' },
     { kind: 'burst', max: 1, chance: 0.35, type: 'flow' },
     { kind: 'nebulicApple', max: 4, chance: 0.25, type: 'fruitNight' },
@@ -353,9 +353,13 @@ class Game {
     spawnInitialEntities() {
         const bounds = this.world3D.getVisibleBounds();
 
-        // Spawn gate/node
-        const nx = bounds.left + bounds.width * (0.45 + Math.random() * 0.3);
-        const ny = bounds.bottom + bounds.height * (0.55 + Math.random() * 0.2);
+        // Spawn gate/node (Singularity is forced to center 0,0,0)
+        let nx = bounds.left + bounds.width * (0.45 + Math.random() * 0.3);
+        let ny = bounds.bottom + bounds.height * (0.55 + Math.random() * 0.2);
+        if (this.runData.sector === 20) {
+            nx = 0;
+            ny = 0;
+        }
         this.nodes.spawn(nx, ny, this.runData.sector);
 
         // Initial collectibles
@@ -365,7 +369,7 @@ class Game {
             this.collectibles.spawn('energy', x, y, this.runData.sector);
         }
 
-        this.collectibles.spawn('boost',
+        this.collectibles.spawn('predictiveVector',
             bounds.left + 80 + Math.random() * (bounds.width - 160),
             bounds.bottom + 80 + Math.random() * (bounds.height - 160),
             this.runData.sector
@@ -509,6 +513,14 @@ class Game {
         const clockDelta = this.clock.getDelta();
         let dt = Math.min(clockDelta, 1 / 30); // Cap at ~33ms to prevent spiral of death
 
+        // ========================================
+        // SUB-STEPPING: Prevent physics tunneling on slow devices
+        // If delta > 100ms, break into smaller steps
+        // ========================================
+        const MAX_STEP = 0.033; // 33ms max per step
+        const steps = dt > 0.1 ? Math.ceil(dt / MAX_STEP) : 1;
+        dt = dt / steps; // Divide into sub-steps
+
         const frameTime = now - this.lastTime;
         this.lastTime = now;
         this.lastFrameTime = frameTime;
@@ -518,7 +530,7 @@ class Game {
 
         // Hit stop
         if (this.hitStopTimer > 0) {
-            this.hitStopTimer -= dt;
+            this.hitStopTimer -= dt * steps; // Use original delta for timer
             if (this.hitStopTimer <= 0) this.timeScale = 1.0;
         }
         dt *= this.timeScale;
@@ -586,6 +598,14 @@ class Game {
         // Track jerk for pilot style
         this.trackJerk(dt);
 
+        // ========================================
+        // TELEMETRY SERVICE: Track player position for jerkiness
+        // ========================================
+        if (typeof telemetryService !== 'undefined') {
+            telemetryService.recordPosition(this.player.x, this.player.y, data.time);
+            telemetryService.update(data.time);
+        }
+
         // Update flow
         this.updateFlow(dt, dailyMod);
 
@@ -594,8 +614,8 @@ class Game {
 
         // Update entities
         this.collectibles.update(dt, data.time, bounds);
-        this.nodes.update(dt, data.time);
-        this.bullets.update(dt, bounds);
+        this.nodes.update(dt, data.time, this.player, this.enemies);
+        this.bullets.update(dt, bounds, data.time);
 
         // Update decorative stars from spawn budget
         spawnBudget.updateStars(data.time);
@@ -639,8 +659,10 @@ class Game {
                 this.bullets.spawnPlayerBullet(
                     this.player.x, this.player.y,
                     aimDir.x, aimDir.y,
-                    damage, data.weaponMode
+                    damage, data.weaponMode,
+                    data.time
                 );
+                this.director.recordShot();
                 this.audio.playShoot();
             }
         }
@@ -655,8 +677,10 @@ class Game {
             this.bullets.spawnPlayerBullet(
                 this.player.x, this.player.y,
                 dx / dist, dy / dist,
-                damage, data.weaponMode
+                damage, data.weaponMode,
+                data.time
             );
+            this.director.recordShot();
 
             this.player.nextShotTime = data.time + 1 / 9;
             this.audio.playShoot();
@@ -916,6 +940,11 @@ class Game {
                 const dn = Math.hypot(b.x - n.x, b.y - n.y);
 
                 if (dn < n.coreR + b.r + 8) {
+                    b.hasHit = true;
+                    this.director.recordHit();
+                    if (typeof telemetryService !== 'undefined') {
+                        telemetryService.recordShot(true, data.time);
+                    }
                     const destroyed = n.takeDamage(1);
                     data.crystals += 6;
                     data.flow = Math.min(data.flowMax, data.flow + 0.3);
@@ -940,6 +969,11 @@ class Game {
                     this.bullets.removePlayerBullet(b);
                     break;
                 } else if (dn < n.shieldR) {
+                    b.hasHit = true;
+                    this.director.recordHit();
+                    if (typeof telemetryService !== 'undefined') {
+                        telemetryService.recordShot(true, data.time);
+                    }
                     this.bullets.removePlayerBullet(b);
                     break;
                 }
@@ -953,6 +987,11 @@ class Game {
                 const de = Math.hypot(b.x - e.x, b.y - e.y);
 
                 if (de < e.r + b.r) {
+                    b.hasHit = true;
+                    this.director.recordHit();
+                    if (typeof telemetryService !== 'undefined') {
+                        telemetryService.recordShot(true, data.time);
+                    }
                     const dead = e.takeDamage(b.damage);
 
                     if (dead) {
@@ -1074,26 +1113,27 @@ class Game {
                 this.audio.haptic('light');
                 break;
 
-            case 'boost':
+            case 'predictiveVector':
                 data.flow = Math.min(data.flowMax, data.flow + 3);
                 data.crystals += 120 * p.combo;
                 p.addCombo(time);
                 this.audio.playCollect('E4');
-                this.ui.showToast('Resonance Boost', 1200, '#bbf7d0');
+                this.ui.showToast('Predictive Vector', 1200, '#00ffcc');
                 this.audio.haptic('light');
+                if (typeof predictiveAI !== 'undefined') {
+                    predictiveAI.feedPositiveVector();
+                }
                 break;
 
-            case 'asteroid':
-                if (!p.shieldActive) {
-                    data.flow = Math.max(0, data.flow - 10);
-                    data.crystals = Math.max(0, data.crystals - 80);
-                    p.combo = 1;
-                    data.stats.tookDamage = true;
-                    this.audio.playError('G2');
-                    this.ui.showToast('Asteroid impact -80 💎', 1600, '#f97316');
-                    this.audio.haptic('heavy');
-                } else {
-                    this.ui.showToast('Shield absorbed asteroid', 1000, '#60a5fa');
+            case 'landmarkNode':
+                data.flow = Math.min(data.flowMax, data.flow + 5);
+                data.crystals += 80 * p.combo;
+                p.addCombo(time);
+                this.audio.playCollect('C5');
+                this.ui.showToast('Landmark Node Stabilized', 1200, '#00ffff');
+                this.audio.haptic('light');
+                if (typeof nystromKernel !== 'undefined') {
+                    nystromKernel.stabilizeRank();
                 }
                 break;
 
@@ -1179,9 +1219,9 @@ class Game {
         data.highestSector = Math.max(data.highestSector, data.sector);
         this.meta.setMaxSector(data.highestSector);
 
-        // MAX 11 SECTORS - Utopia Run ends at Singularity
-        if (data.sector > 11) {
-            // Trigger Singularity sequence at sector 11 completion
+        // MAX 20 SECTORS - Elemental Odyssey ends at Singularity
+        if (data.sector > 20) {
+            // Trigger Singularity sequence at sector 20 completion
             this.triggerSingularity();
             return;
         }

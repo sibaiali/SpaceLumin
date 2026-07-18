@@ -182,13 +182,15 @@ class BulletPool {
         this.enemyBullets = [];
     }
 
-    spawnPlayerBullet(x, y, dx, dy, damage, mode) {
+    spawnPlayerBullet(x, y, dx, dy, damage, mode, time) {
         // MOBILE PERFORMANCE: Enforce max bullet limit
         if (this.playerBullets.length >= MAX_PLAYER_BULLETS) {
             return null; // Don't spawn if at cap
         }
 
         const bullet = new Bullet(this.scene, x, y, dx, dy, damage, mode, false);
+        bullet.spawnTime = time ?? 0;
+        bullet.hasHit = false;
         this.playerBullets.push(bullet);
         return bullet;
     }
@@ -203,13 +205,18 @@ class BulletPool {
         return bullet;
     }
 
-    update(dt, bounds) {
+    update(dt, bounds, time) {
         // Update player bullets
         for (let i = this.playerBullets.length - 1; i >= 0; i--) {
             const b = this.playerBullets[i];
             b.update(dt);
 
             if (!b.isAlive() || b.isOutOfBounds(bounds)) {
+                if (!b.hasHit) {
+                    if (typeof telemetryService !== 'undefined') {
+                        telemetryService.recordShot(false, time ?? 0);
+                    }
+                }
                 b.dispose();
                 this.playerBullets.splice(i, 1);
             }

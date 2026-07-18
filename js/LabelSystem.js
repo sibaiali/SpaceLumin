@@ -17,7 +17,7 @@ class LabelSystem {
         // Icon mappings
         this.iconMap = {
             energy: { icon: '💧', text: 'HP', color: '#22d3ee' },
-            boost: { icon: '⚡', text: 'Boost', color: '#fbbf24' },
+            predictiveVector: { icon: '🌀', text: 'Predictive Vector', color: '#00ffcc' },
             burst: { icon: '🌊', text: 'Flow', color: '#a855f7' },
             cherry: { icon: '🍒', text: 'Flow', color: '#f472b6' },
             banana: { icon: '🍌', text: 'Flow', color: '#fcd34d' },
@@ -26,7 +26,7 @@ class LabelSystem {
             plum: { icon: '🍇', text: 'Shards', color: '#c084fc' },
             shield: { icon: '🛡️', text: 'Shield', color: '#60a5fa' },
             toxic: { icon: '☠️', text: 'Void', color: '#84cc16' },
-            asteroid: { icon: '🪨', text: 'Ore', color: '#f97316' },
+            landmarkNode: { icon: '🔷', text: 'Landmark Node', color: '#00ffff' },
             glowingJuice: { icon: '✨', text: 'Regen', color: '#22c55e' },
             crystal: { icon: '💎', text: 'Shards', color: '#06b6d4' }
         };
@@ -171,7 +171,7 @@ class LabelSystem {
     getCollectibleValue(c) {
         const values = {
             energy: '+15 HP',
-            boost: '+20 Flow',
+            predictiveVector: '+Resonance',
             burst: '+30 Flow',
             cherry: '+8 Flow',
             banana: '+12 Flow',
@@ -180,7 +180,7 @@ class LabelSystem {
             plum: '+5 Shards',
             shield: '+Shield',
             toxic: '-10 HP',
-            asteroid: '+Ore',
+            landmarkNode: '+Stabilize',
             glowingJuice: '+Regen',
             crystal: '+Shards'
         };

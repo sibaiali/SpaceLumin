@@ -26,7 +26,17 @@ const STATIC_ASSETS = [
     '/js/SingularitySequence.js',
     '/js/SpawnBudget.js',
     '/js/UIController.js',
-    '/js/World3D.js'
+    '/js/World3D.js',
+    '/js/NystromKernel.js',
+    '/js/KernelMapper.js',
+    '/js/NeuroFlowController.js',
+    '/js/CognitiveOverloadDetector.js',
+    '/js/GhostConsole.js',
+    '/js/EnemyDNA.js',
+    '/js/EnemyPool.js',
+    '/js/TelemetryService.js',
+    '/js/PredictiveAI.js',
+    '/js/NetworkHandler.js'
 ];
 
 // External CDN resources (cache on first use)

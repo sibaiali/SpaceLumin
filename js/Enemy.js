@@ -148,49 +148,59 @@ class Enemy {
 
         switch (this.type) {
             case 'boss':
-                // Large menacing sphere with spikes
+                // Large menacing sphere - PBR metallic with clearcoat
                 geometry = new THREE.IcosahedronGeometry(this.r, 1);
-                material = new THREE.MeshPhongMaterial({
+                material = new THREE.MeshPhysicalMaterial({
                     color: 0xea580c,
                     emissive: 0xf97316,
-                    emissiveIntensity: 0.4,
-                    shininess: 50,
+                    emissiveIntensity: 0.5,
+                    metalness: 0.8,
+                    roughness: 0.2,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.1,
                     flatShading: true
                 });
                 break;
 
             case 'reaper':
-                // Ethereal ghost-like shape
+                // Ethereal ghost - PBR with high clearcoat for glassy look
                 geometry = new THREE.OctahedronGeometry(this.r, 0);
-                material = new THREE.MeshPhongMaterial({
+                material = new THREE.MeshPhysicalMaterial({
                     color: 0x581c87,
                     emissive: 0xec4899,
-                    emissiveIntensity: 0.5,
+                    emissiveIntensity: 0.6,
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.05,
                     transparent: true,
-                    opacity: 0.9,
-                    shininess: 100
+                    opacity: 0.85
                 });
                 break;
 
             case 'tanky':
-                // Armored cube-ish
-                geometry = new THREE.BoxGeometry(this.r * 1.5, this.r * 1.5, this.r * 1.5);
-                material = new THREE.MeshPhongMaterial({
+                // Dense crystalline structure - OctahedronGeometry for solid/defensive look
+                geometry = new THREE.OctahedronGeometry(this.r * 1.2, 0);
+                material = new THREE.MeshStandardMaterial({
                     color: 0x60a5fa,
                     emissive: 0x2563eb,
-                    emissiveIntensity: 0.2,
-                    shininess: 30
+                    emissiveIntensity: 0.3,
+                    roughness: 0.3,
+                    metalness: 0.7,
+                    flatShading: true
                 });
                 break;
 
             case 'fast':
-                // Small dart shape
-                geometry = new THREE.ConeGeometry(this.r * 0.8, this.r * 2, 4);
-                material = new THREE.MeshPhongMaterial({
+                // Sharp tetrahedron - fast/aggressive look
+                geometry = new THREE.TetrahedronGeometry(this.r * 1.2, 0);
+                material = new THREE.MeshStandardMaterial({
                     color: 0xf87171,
                     emissive: 0xef4444,
-                    emissiveIntensity: 0.3,
-                    shininess: 80
+                    emissiveIntensity: 0.4,
+                    roughness: 0.2,
+                    metalness: 0.8,
+                    flatShading: true
                 });
                 break;
 
