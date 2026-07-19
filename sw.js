@@ -3,7 +3,7 @@
  * Enables offline play and caching for PWA/TWA
  */
 
-const CACHE_NAME = 'lumin-flow-v1.0.1';
+const CACHE_NAME = 'lumin-flow-v1.0.5';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -36,6 +36,7 @@ const STATIC_ASSETS = [
     '/js/EnemyPool.js',
     '/js/TelemetryService.js',
     '/js/PredictiveAI.js',
+    '/js/PredictionEvaluationAdapter.js',
     '/js/PredictionDebugOverlay.js',
     '/js/NetworkHandler.js'
 ];
