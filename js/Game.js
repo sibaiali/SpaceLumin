@@ -241,6 +241,10 @@ class Game {
             }
         };
 
+        window.invokePredictionEvaluatorSafely?.('game.session-start', () => {
+            this.predictionEvaluator?.beginSession();
+        });
+
         // Create entities
         this.player = new Player(this.world3D.scene, this.world3D);
         this.bullets = new BulletPool(this.world3D.scene);
@@ -317,6 +321,10 @@ class Game {
     }
 
     endRun() {
+        window.invokePredictionEvaluatorSafely?.('game.session-end', () => {
+            this.predictionEvaluator?.endSession('RUN_ENDED');
+        });
+
         // Hide mobile controls
         this.input.hideMobileControls();
 
@@ -604,6 +612,13 @@ class Game {
         if (typeof telemetryService !== 'undefined') {
             telemetryService.recordPosition(this.player.x, this.player.y, data.time);
             telemetryService.update(data.time);
+
+            if (this.predictionEvaluator && typeof predictiveAI !== 'undefined') {
+                const encodedState = predictiveAI.lastState;
+                window.invokePredictionEvaluatorSafely?.('game.position-observation', () => {
+                    this.predictionEvaluator.observePosition(encodedState);
+                });
+            }
         }
 
         // Update flow
@@ -1282,6 +1297,9 @@ class Game {
     }
 
     showResults(reason) {
+        window.invokePredictionEvaluatorSafely?.('game.results-end', () => {
+            this.predictionEvaluator?.endSession(`RESULTS_${reason}`);
+        });
         this.state = 'results';
 
         const data = this.runData;

@@ -339,6 +339,9 @@
 
                 // Initialize game
                 window.game = new Game();
+                window.invokePredictionEvaluatorSafely?.('initialization', () => {
+                    window.initializePredictionEvaluator?.();
+                });
                 console.log('[Init] Game initialized successfully');
 
                 // Show mobile controls if on mobile
@@ -440,6 +443,8 @@
             }
         });
     </script>
+    <script src="js/PredictionEvaluationAdapter.js"></script>
+    <script src="js/PredictionDebugOverlay.js"></script>
 </body>
 
 </html>

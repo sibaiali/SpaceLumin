@@ -140,7 +140,23 @@ class Director {
         // Applied ON TOP of the skill-based values above.
         // ============================================================
         if (typeof telemetryService !== 'undefined') {
-            const { collisionRisk, missedBurstRisk, panicRisk } = telemetryService.getPrediction();
+            const evaluator = typeof window !== 'undefined'
+                ? window.game?.predictionEvaluator
+                : null;
+            const evaluationEnabled = evaluator &&
+                typeof window.invokePredictionEvaluatorSafely === 'function';
+            const predictionStartedAt = evaluationEnabled ? performance.now() : null;
+            const prediction = telemetryService.getPrediction();
+
+            if (evaluationEnabled) {
+                window.invokePredictionEvaluatorSafely('director.prediction-opportunity', () => {
+                    evaluator.openPredictionOpportunity({
+                        predictionLatencyMs: performance.now() - predictionStartedAt
+                    });
+                });
+            }
+
+            const { collisionRisk, missedBurstRisk, panicRisk } = prediction;
 
             // Player is about to collide with a cluster → ease speed so
             // they can still react, keeping tension high but fair.
