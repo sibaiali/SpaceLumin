@@ -4,7 +4,7 @@
 
 `js/PredictionEvaluationAdapter.js` implements the minimum development-only evaluation core described by `docs/PREDICTION_EVALUATION_DESIGN.md`. It does not change PredictiveAI state encoding, transition thresholds, prediction cadence, risk calculations, Director behaviour, or gameplay. It does not call `predictiveAI.predict()`.
 
-The adapter is separate from `PredictionDebugOverlay` and contains no UI, timers, network calls, persistence, charts, CSV export, or external dependencies.
+The adapter is separate from `PredictionDebugOverlay` and contains no UI, timers, network calls, persistence, charts, aggregate metrics, or external dependencies. Ended sessions can be serialized locally as deterministic JSON or CSV strings; the adapter does not upload or save them.
 
 ## Development activation
 
@@ -28,7 +28,18 @@ Mode B is the default. Select Mode A with:
 
 Use `evaluationSource=synthetic` only for declared synthetic correctness checks. Otherwise `sourceType` is `human`.
 
+Controlled sessions may also declare pseudonymous metadata in the development URL:
+
+```text
+&evaluationParticipant=participant-001&evaluationPlayStyle=balanced
+&evaluationBuild=40cce33&evaluationNotes=keyboard-only
+```
+
+`evaluationParticipant` must start with `participant-` and contain only letters, numbers, dots, underscores, or hyphens; invalid values become `participant-unknown`. Play-style labels use the same slug-like character set. Notes are optional and limited to 500 characters. These fields must never contain a name, email address, IP address, device identifier, precise location, or other identifying data.
+
 Without both `dev=1` and `evaluate=1`, the script returns before defining a browser class, registering a listener, constructing an adapter, or allocating a ledger. `window.game.predictionEvaluator` and `window.PredictionEvaluationAdapter` therefore remain absent.
+
+The guarded `window.spaceLuminEvaluation` interface is also absent. When enabled, it exposes only fault-contained metadata, lifecycle, snapshot, export, and download methods documented in `docs/PREDICTION_EVALUATION_EXPORT.md`.
 
 When enabled, `index.html` invokes the gated initializer immediately after `window.game` is created. The document root receives `data-prediction-evaluator="A"` or `"B"` as a non-interactive verification marker. Development console lifecycle messages report session start, event open/finalization/censoring, and duplicate suppression; they do not create events or expose a mutation API.
 
@@ -130,7 +141,7 @@ Load a snapshot before starting any session:
 window.game.predictionEvaluator.loadFrozenSnapshot(snapshot);
 ```
 
-Expected shape:
+The legacy minimum input shape remains supported:
 
 ```js
 {
@@ -144,7 +155,33 @@ Expected shape:
 }
 ```
 
-The loader validates dimensions and counts, clones every row, and deep-freezes its copy. It rejects loading after evaluation has begun. `PredictionEvaluationAdapter.createSnapshotFromPredictor()` is a read-only copy helper; it never calls `predict()`.
+The loader validates dimensions and counts, clones every row, derives row totals and normalized rows, and deep-freezes its copy. It rejects loading after evaluation has begun. `PredictionEvaluationAdapter.createSnapshotFromPredictor()` is a read-only copy helper; it never calls `predict()`.
+
+The explicit calibration snapshot schema contains:
+
+- schema version, snapshot ID, creation timestamp, evaluator configuration version, source model type, application version, and build version;
+- numeric state labels plus the HP/zone/jerk vocabulary when production dimensions are available;
+- the deep-copied transition-count matrix, normalized probability rows, row totals, and global next-state counts;
+- calibration session IDs and observation count when supplied by a controlled calibration process;
+- model dimensions and an explicit `transitionProbabilitySmoothing: "none"` declaration.
+
+A controlled calibration process can create and load the copy before the first Mode A run:
+
+```js
+const snapshot = PredictionEvaluationAdapter.createSnapshotFromPredictor(predictiveAI, {
+    snapshotId: 'calibration-001',
+    calibrationSessionIds: ['calibration-session-001'],
+    calibrationObservationCount: 1200,
+    buildVersion: '40cce33'
+});
+window.game.predictionEvaluator.loadFrozenSnapshot(snapshot);
+```
+
+The supplied session IDs and observation count must come from the actual calibration process; omit them to export `null` rather than guessing.
+
+Unavailable provenance is represented as `null`; the adapter does not reinterpret `totalTransitions` as a human-observation count because production pseudo-count reinforcement may be present. A generated snapshot ID identifies the evaluator copy and does not claim missing calibration provenance.
+
+At session start, Mode A locks the already-frozen snapshot reference into the session record. Every opportunity in that session projects from that exact snapshot even if production `predictiveAI.transitions` continues changing. Mode B similarly records an immutable copy of its session-start shadow model for export, while its separate online matrix continues score-before-update learning.
 
 Calibration-session collection and snapshot persistence are intentionally not implemented yet.
 
@@ -180,6 +217,53 @@ Every finalized record contains:
 - sector and game time at opening;
 - algorithm configuration version and terminal status.
 
+## Session metadata
+
+`beginSession()` locks a start descriptor containing the session schema version, session ID, pseudonymous participant label, play-style label, mode, source type, start timestamp, build/configuration versions, calibration snapshot ID, starting sector, and optional notes. Later changes to constructor defaults or caller-owned option objects cannot rewrite those values.
+
+`endSession()` censors any pending event once, captures the end timestamp and final sector, calculates monotonic duration in milliseconds, records the terminal reason and event-status counts, and stores an immutable historical session record. Repeated end calls are no-ops and cannot overwrite the first terminal record. Starting a later session retains prior ledger entries and metadata.
+
+The browser fault boundary is sampled at session start and end. When available, the metadata and `faults` export contain only the session delta, including per-hook counts. If a fault provider is unavailable, fault fields are `null` rather than an invented zero.
+
+The evaluator stores no names, emails, IP addresses, device fingerprints, precise locations, analytics identifiers, or cookies. All session data remains in page memory unless a developer explicitly copies an export string.
+
+## JSON and CSV export
+
+Ended sessions and the current active session can be exported. Active export adds a frozen copy of the pending `OPEN` event, if any, so unresolved state is represented without mutating or finalizing it. `exportSession(sessionId, options)` returns a deeply frozen copy with the complete structure:
+
+```json
+{
+  "schemaVersion": "spacelumin.prediction-export/1.0.0",
+  "exportedAt": "...",
+  "session": {},
+  "configuration": {},
+  "calibrationSnapshot": {},
+  "events": [],
+  "faults": {},
+  "notes": {}
+}
+```
+
+`exportSessionJSON()` / `exportSessionJson()` serialize that structure with stable field and event order. `exportEventsCSV()` emits one row per event with a fixed event header and genuine probability rows encoded as compact JSON cells. `exportSessionCSV()` emits exactly one session-summary row with a distinct fixed header. A zero-event session produces an event CSV header only and a valid session-summary row.
+
+For byte-for-byte reproducible output, supply the same explicit ISO export timestamp:
+
+```js
+const evaluator = window.game.predictionEvaluator;
+const sessionId = evaluator.getSessionIds()[0];
+const json = evaluator.exportSessionJSON(sessionId, {
+    exportedAt: '2026-07-20T12:00:00.000Z'
+});
+const eventCsv = evaluator.exportEventsCSV(sessionId, {
+    exportedAt: '2026-07-20T12:00:00.000Z'
+});
+const sessionCsv = evaluator.exportSessionCSV(sessionId, {
+    exportedAt: '2026-07-20T12:00:00.000Z'
+});
+```
+
+Without `exportedAt`, the current ISO export time is used. Export methods return strings or immutable copies only. They do not download, persist, transmit, aggregate, score, or chart the data.
+
 ## Development read helpers
 
 The following return immutable values or copies:
@@ -189,6 +273,12 @@ The following return immutable values or copies:
 - `getOpenEvent()`
 - `getSuppressedDuplicateCount()`
 - `getModelSnapshot()`
+- `getSessionMetadata(sessionId)`
+- `getSessionIds()`
+- `exportSession(sessionId, options)`
+- `exportSessionJSON(sessionId, options)`
+- `exportEventsCSV(sessionId, options)`
+- `exportSessionCSV(sessionId, options)`
 
 No helper exposes a mutable resolved event or production transition row.
 
@@ -200,13 +290,13 @@ Run with the bundled Node executable:
 & "C:\Program Files\Adobe\Adobe Creative Cloud Experience\libs\node.exe" tests\prediction_evaluation_adapter.test.js
 ```
 
-The 16-test deterministic synthetic harness covers correct and incorrect resolution, missing rows, repeated states, duplicate calls, censoring, frozen snapshot isolation, score-before-update Mode B learning, double-score prevention, production-predictor isolation, all integration hook classes, continued Director output processing, and fault-log deduplication. Synthetic results are correctness checks only and are not human-performance evidence.
+The 31-test deterministic synthetic harness covers correct and incorrect resolution, missing rows, repeated states, duplicate calls, censoring, frozen snapshot isolation, score-before-update Mode B learning, double-score prevention, production-predictor isolation, explicit snapshot derivation and provenance, session locking and fault deltas, distinct deterministic JSON/event-CSV/session-CSV output, scalar/null/escaping preservation, all lifecycle states, empty and active exports, historical exports, privacy defaults, disabled browser gating, guarded browser methods/download construction, forced serialization/download failures, all integration hook classes, continued Director output processing, and fault-log deduplication. Synthetic results are correctness checks only and are not human-performance evidence.
 
 ## Known limitations
 
-- Calibration collection, snapshot persistence, and session export are not implemented.
+- Calibration collection automation, snapshot persistence, and remote storage are not implemented. Guarded downloads are explicit local browser actions only.
 - `feedPositiveVector()` mutations are documented but not mirrored into the shadow model.
-- Results aggregation, impossible-event metrics, clipped log loss, Brier score, confidence intervals, charts, and CSV export remain future work.
+- Results aggregation, impossible-event metrics, clipped log loss, Brier score, confidence intervals, and charts remain future work.
 - Mode A produces `NO_PREDICTION` until a valid calibration snapshot is explicitly loaded.
 - The evaluator observes the currently wired states, which remain constrained by PredictiveAI's default HP and nearby-enemy inputs.
 - A failed evaluator remains enabled for later hooks; repeated identical failures are counted but logged only once.
