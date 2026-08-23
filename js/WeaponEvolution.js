@@ -1,4 +1,4 @@
-﻿/**
+/**
  * WeaponEvolution.js - Multi-Tier Weapon Evolution & Fusion System
  * 
  * Implements Survivor-style weapon fusions when player meets landmark/vector requirements:
@@ -106,7 +106,7 @@ class WeaponEvolutionSystem {
         if (!WEAPON_EVOLUTIONS[evolutionId]) return;
         this.unlockedEvolutions.add(evolutionId);
         this.activeEvolution = WEAPON_EVOLUTIONS[evolutionId];
-        console.log([WeaponEvolution] UNLOCKED: );
+        console.log('[WeaponEvolution] UNLOCKED: ' + this.activeEvolution.name);
         if (this.audio && this.audio.playPowerup) {
             this.audio.playPowerup('G5');
         }

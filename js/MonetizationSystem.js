@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MonetizationSystem.js - Hybrid Ad Rewards & In-App Economy Controller
  * 
  * Bridges CrazyGames SDK, Poki SDK, Google AdMob, and local fallbacks:
@@ -17,7 +17,7 @@ class MonetizationSystem {
         this.hasRevivedThisRun = false;
         this.sdkType = this.detectSDK();
         
-        console.log([MonetizationSystem] Initialized with SDK provider: );
+        console.log('[MonetizationSystem] Initialized with SDK provider: ' + this.sdkType);
     }
     
     detectSDK() {
@@ -32,7 +32,7 @@ class MonetizationSystem {
      * @param {Function} onRewardGranted 
      */
     showRewardedAd(rewardType, onRewardGranted) {
-        console.log([Monetization] Requesting Rewarded Ad for: );
+        console.log('[Monetization] Requesting Rewarded Ad for: ' + rewardType);
         
         // CrazyGames SDK
         if (this.sdkType === 'crazygames' && window.CrazyGames?.SDK?.ad) {
@@ -110,7 +110,7 @@ class MonetizationSystem {
             const extra = runData.crystals || 0;
             runData.crystals += extra;
             this.meta?.addCrystals(extra);
-            this.ui?.showToast(💎 Doubled! + Shards, 2000, '#00ffff');
+            this.ui?.showToast(`💎 Doubled! +${extra} Shards`, 2000, '#00ffff');
         });
     }
     
