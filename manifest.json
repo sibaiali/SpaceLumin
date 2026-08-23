@@ -1,8 +1,8 @@
 {
-  "name": "Lumin Flow: Utopia Run",
-  "short_name": "Lumin Flow",
+  "name": "SpaceLumin: Utopia Run",
+  "short_name": "SpaceLumin",
   "description": "Navigate 20 elemental sectors from Mercury to TRAPPIST-1e. Evolving AI, procedural DNA enemies, and cinematic space combat.",
-  "start_url": "/index.html",
+  "start_url": "index.html",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#0a0a1a",
@@ -77,7 +77,7 @@
       "form_factor": "wide"
     }
   ],
-  "scope": "/",
+  "scope": "./",
   "lang": "en-US",
   "dir": "ltr"
 }
