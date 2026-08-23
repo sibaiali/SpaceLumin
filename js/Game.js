@@ -39,6 +39,12 @@ class Game {
         // Label system for collectibles
         this.labelSystem = new LabelSystem();
 
+        // Weapon Evolution / Fusion System
+        this.weaponEvolution = new WeaponEvolutionSystem(this.world3D.scene, this.world3D, this.audio);
+
+        // Monetization & Rewarded Ad System
+        this.monetization = new MonetizationSystem(this.ui, this.meta, this.audio);
+
         // Singularity ending (sector 11)
         this.singularity = new SingularitySequence(this.world3D.scene, this.world3D.camera);
 
@@ -132,6 +138,20 @@ class Game {
         });
 
         // Results
+        document.getElementById('btn-emergency-revive')?.addEventListener('click', () => {
+            if (this.monetization?.canRevive() && this.runData) {
+                this.ui.hideOverlay('results');
+                this.state = 'playing';
+                this.monetization.triggerRevive(this);
+            } else {
+                this.ui.showToast('Emergency Warp already used this run', 1500, '#fb923c');
+            }
+        });
+        document.getElementById('btn-double-crystals')?.addEventListener('click', () => {
+            this.monetization?.doubleRunCrystals(this.runData);
+            document.getElementById('btn-double-crystals').disabled = true;
+            document.getElementById('btn-double-crystals').style.opacity = '0.5';
+        });
         document.getElementById('btn-restart')?.addEventListener('click', () => {
             this.ui.hideOverlay('results');
             this.startRun();
@@ -235,11 +255,15 @@ class Game {
                 lastVelY: 0,
                 fruitsCollected: 0,
                 plumsCollected: 0,
+                landmarksCollected: 0,
                 tookDamage: false,
                 wraithKilled: false,
                 bossKilled: false
             }
         };
+
+        this.weaponEvolution?.reset();
+        this.monetization?.resetRun();
 
         window.invokePredictionEvaluatorSafely?.('game.session-start', () => {
             this.predictionEvaluator?.beginSession();
@@ -631,6 +655,20 @@ class Game {
         this.collectibles.update(dt, data.time, bounds);
         this.nodes.update(dt, data.time, this.player, this.enemies);
         this.bullets.update(dt, bounds, data.time);
+
+        // Weapon Evolution / Fusion System update
+        if (this.weaponEvolution) {
+            const newlyUnlocked = this.weaponEvolution.checkUnlockConditions(
+                data.sector,
+                data.flow,
+                this.player.combo,
+                data.stats.landmarksCollected || 0
+            );
+            for (const evo of newlyUnlocked) {
+                this.ui.showToast(`🔥 FUSION UNLOCKED: ${evo.name}!`, 2500, '#facc15');
+            }
+            this.weaponEvolution.update(dt, data.time, this.player.x, this.player.y, this.enemies, this.bullets);
+        }
 
         // Update decorative stars from spawn budget
         spawnBudget.updateStars(data.time);
@@ -1143,6 +1181,7 @@ class Game {
             case 'landmarkNode':
                 data.flow = Math.min(data.flowMax, data.flow + 5);
                 data.crystals += 80 * p.combo;
+                data.stats.landmarksCollected = (data.stats.landmarksCollected || 0) + 1;
                 p.addCombo(time);
                 this.audio.playCollect('C5');
                 this.ui.showToast('Landmark Node Stabilized', 1200, '#00ffff');

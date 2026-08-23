@@ -13,10 +13,8 @@
         NA: 'N/A'
     });
 
-    const developmentModeAllowed = ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
-        new URLSearchParams(window.location.search).get('dev') === '1';
-
-    if (!developmentModeAllowed) return;
+    // Allow overlay everywhere so recruiters & reviewers on GitHub Pages can inspect live proofs
+    const developmentModeAllowed = true;
 
     const freeze = (value) => Object.freeze(value);
     const finiteOrNull = (value) => Number.isFinite(value) ? value : null;
@@ -145,8 +143,34 @@
             this.installStyles();
             this.root = this.buildDOM();
             document.body.appendChild(this.root);
+            
+            // Add recruiter / reviewer floating toggle button
+            const floatBtn = document.createElement('button');
+            floatBtn.id = 'pdo-floating-toggle-btn';
+            floatBtn.innerHTML = '🔬 AI Telemetry & Benchmarks [P]';
+            floatBtn.style.cssText = `
+                position: fixed;
+                bottom: 14px;
+                right: 14px;
+                z-index: 99999;
+                background: rgba(15, 23, 42, 0.90);
+                color: #22d3ee;
+                border: 1px solid #06b6d4;
+                border-radius: 20px;
+                padding: 6px 14px;
+                font: 600 11px/1.3 'Inter', system-ui, sans-serif;
+                cursor: pointer;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(6px);
+                transition: transform 0.15s ease, background 0.15s ease;
+            `;
+            floatBtn.onmouseenter = () => { floatBtn.style.transform = 'scale(1.05)'; floatBtn.style.background = 'rgba(6, 182, 212, 0.25)'; };
+            floatBtn.onmouseleave = () => { floatBtn.style.transform = 'scale(1)'; floatBtn.style.background = 'rgba(15, 23, 42, 0.90)'; };
+            floatBtn.onclick = () => this.toggle();
+            document.body.appendChild(floatBtn);
+
             window.addEventListener('keydown', this.handleKeyDown);
-            console.log('[PredictionDebugOverlay] Ready - press F3 to toggle');
+            console.log('[PredictionDebugOverlay] Ready - press F3 or P to toggle recruiter telemetry HUD');
         }
 
         installStyles() {
@@ -346,7 +370,8 @@
         }
 
         handleKeyDown(event) {
-            if (event.key !== 'F3' || event.repeat || this.isTypingTarget(event.target)) return;
+            const isToggleKey = event.key === 'F3' || event.key === 'p' || event.key === 'P';
+            if (!isToggleKey || event.repeat || this.isTypingTarget(event.target)) return;
             event.preventDefault();
             this.toggle();
         }
