@@ -1,0 +1,14 @@
+{
+  "appId": "com.spacelumin.utopiarun",
+  "appName": "Lumin Flow: Utopia Run",
+  "webDir": ".",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#030712",
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

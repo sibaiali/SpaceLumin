@@ -1,0 +1,23 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.spacelumin.utopiarun'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.spacelumin.utopiarun"
+        minSdk 24
+        targetSdk 34
+        versionCode 40
+        versionName "4.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+        debug {
+            debuggable true
+        }
+    }
+}

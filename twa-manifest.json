@@ -1,0 +1,47 @@
+{
+    "packageId": "com.ali.luminflow.odyssey",
+    "host": "luminflow.netlify.app",
+    "name": "Lumin Flow: Utopia Run",
+    "launcherName": "Lumin Flow",
+    "display": "fullscreen",
+    "orientation": "landscape",
+    "themeColor": "#22d3ee",
+    "navigationColor": "#0a0a1a",
+    "navigationColorDark": "#0a0a1a",
+    "navigationDividerColor": "#0a0a1a",
+    "navigationDividerColorDark": "#0a0a1a",
+    "backgroundColor": "#0a0a1a",
+    "enableNotifications": false,
+    "startUrl": "/index.html",
+    "iconUrl": "https://luminflow.netlify.app/icons/icon-512.png",
+    "maskableIconUrl": "https://luminflow.netlify.app/icons/icon-512-maskable.png",
+    "splashScreenFadeOutDuration": 300,
+    "signingKey": {
+        "path": "./luminflow-keystore.jks",
+        "alias": "luminflow"
+    },
+    "appVersionCode": 1,
+    "appVersionName": "1.0.0",
+    "shortcuts": [],
+    "generatorApp": "bubblewrap-cli",
+    "webManifestUrl": "https://luminflow.netlify.app/manifest.json",
+    "fallbackType": "customtabs",
+    "fallbackUrl": "https://luminflow.netlify.app",
+    "enableSiteSettingsShortcut": true,
+    "isChromeOSOnly": false,
+    "isMetaQuest": false,
+    "fullScopeUrl": "https://luminflow.netlify.app/",
+    "minSdkVersion": 23,
+    "features": {
+        "locationDelegation": {
+            "enabled": false
+        },
+        "playBilling": {
+            "enabled": false
+        }
+    },
+    "alphaDependencies": {
+        "enabled": false
+    },
+    "serviceAccountJsonFile": ""
+}
