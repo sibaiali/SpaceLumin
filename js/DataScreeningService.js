@@ -13,6 +13,7 @@
 class DataScreeningService {
     constructor() {
         this.storageKey = 'spacelumin_screened_dataset_v1';
+        this.optOutKey = 'spacelumin_dsgvo_optout';
         this.endpoint = '/api/telemetry/screened';
         this.windowSamples = [];
         this.screenedBatches = [];
@@ -25,8 +26,49 @@ class DataScreeningService {
         this._loadStoredBatches();
     }
 
-    _loadStoredBatches() {
+    /**
+     * Checks GDPR / DSGVO Art. 21 Opt-Out status.
+     */
+    isDsgvoOptedOut() {
+        if (typeof localStorage === 'undefined') return false;
+        try {
+            return localStorage.getItem(this.optOutKey) === '1';
+        } catch (_) {
+            return false;
+        }
+    }
+
+    /**
+     * Sets GDPR / DSGVO Art. 21 Opt-Out preference.
+     */
+    setDsgvoOptOut(optOut) {
         if (typeof localStorage === 'undefined') return;
+        try {
+            localStorage.setItem(this.optOutKey, optOut ? '1' : '0');
+            if (optOut) {
+                this.windowSamples = [];
+            }
+        } catch (_) {}
+    }
+
+    /**
+     * GDPR / DSGVO Art. 17 Right to Erasure (Recht auf Löschung).
+     * Immediately purges all local session & screened telemetry records.
+     */
+    eraseAllSessionData() {
+        this.windowSamples = [];
+        this.screenedBatches = [];
+        this.rejectedOutliers = 0;
+        this.acceptedSamples = 0;
+        if (typeof localStorage !== 'undefined') {
+            try {
+                localStorage.removeItem(this.storageKey);
+            } catch (_) {}
+        }
+    }
+
+    _loadStoredBatches() {
+        if (typeof localStorage === 'undefined' || this.isDsgvoOptedOut()) return;
         try {
             const raw = localStorage.getItem(this.storageKey);
             if (raw) {
@@ -39,7 +81,7 @@ class DataScreeningService {
     }
 
     _saveStoredBatches() {
-        if (typeof localStorage === 'undefined') return;
+        if (typeof localStorage === 'undefined' || this.isDsgvoOptedOut()) return;
         try {
             localStorage.setItem(this.storageKey, JSON.stringify(this.screenedBatches.slice(-80)));
         } catch (_) {}
@@ -50,7 +92,7 @@ class DataScreeningService {
      * and non-finite numbers before accepting into the clean statistical window.
      */
     ingestFrame(sample) {
-        if (!sample) return false;
+        if (!sample || this.isDsgvoOptedOut()) return false;
         const { x, y, vx, vy, jerk, flow, sector, nearbyEnemies, dt, time } = sample;
 
         // 1. Validity & Finite Screening

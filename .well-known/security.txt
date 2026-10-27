@@ -1,0 +1,6 @@
+# LUMIN FLOW: UTOPIA RUN (SPACELUMIN) — SECURITY & IP PROTECTION NOTICE
+# Protected under German UrhG §§ 69a, 87a, 95a & EU Directive 2009/24/EC
+Contact: https://github.com/sibaiali/SpaceLumin/issues
+Policy: https://github.com/sibaiali/SpaceLumin/blob/main/COPYRIGHT.md
+Preferred-Languages: de, en
+Expires: 2027-12-31T23:59:59.000Z

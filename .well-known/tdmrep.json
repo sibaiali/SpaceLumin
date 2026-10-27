@@ -1,0 +1,16 @@
+[
+  {
+    "location": "/*",
+    "tdm-reservation": 1,
+    "tdm-policy": "https://github.com/sibaiali/SpaceLumin/blob/main/COPYRIGHT.md",
+    "copyright": "© 2026 Lumin Flow Studios. All Rights Reserved.",
+    "jurisdiction": "DE / EU",
+    "legal-basis": [
+      "German Urheberrechtsgesetz (UrhG) § 44b Abs. 3 (TDM Opt-Out)",
+      "German Urheberrechtsgesetz (UrhG) §§ 69a-69g, 87a-87e, 95a-95d",
+      "EU Directive (EU) 2019/790 Art. 4(3) (DSM Directive)",
+      "EU Software Directive 2009/24/EC"
+    ],
+    "signature": "DE-EU-LFS-2026-9F8A4D2C-7E1B63A0-URHG69A-95A-SEAL"
+  }
+]

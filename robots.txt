@@ -1,0 +1,57 @@
+# ============================================================================
+# LUMIN FLOW: UTOPIA RUN (SPACELUMIN) — ROBOTS & ANTI-CLONING DIRECTIVE
+# Copyright (c) 2026 Lumin Flow Studios. All Rights Reserved.
+# Legal Jurisdiction: Federal Republic of Germany (UrhG §§ 44b, 69a, 87a, 95a)
+# & European Union (Directive 2009/24/EC, DSM Directive (EU) 2019/790 Art. 4(3))
+# ============================================================================
+# MACHINE-READABLE RESERVATION OF RIGHTS (§ 44b Abs. 3 UrhG / Art. 4(3) DSM):
+# Text and Data Mining (TDM), AI model training, automated dataset extraction,
+# and website mirroring/cloning are EXPRESSLY PROHIBITED (tdm-reservation: 1).
+# ============================================================================
+
+# Block Website Cloners, Mirroring Tools & Offline Rippers
+User-agent: HTTrack
+User-agent: WebCopier
+User-agent: Teleport
+User-agent: TeleportPro
+User-agent: WebZIP
+User-agent: SiteSucker
+User-agent: Offline Explorer
+User-agent: WebStripper
+User-agent: WebSauger
+User-agent: Website Quester
+User-agent: wget
+User-agent: curl
+Disallow: /
+
+# Block AI Training & TDM Scrapers (§ 44b Abs. 3 UrhG / EU 2019/790 Art. 4(3))
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: CCBot
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: anthropic-ai
+User-agent: Google-Extended
+User-agent: Bytespider
+User-agent: Diffbot
+User-agent: FacebookBot
+User-agent: Meta-ExternalAgent
+User-agent: Meta-ExternalFetcher
+User-agent: Omgilibot
+User-agent: Omgili
+User-agent: cohere-ai
+User-agent: PerplexityBot
+User-agent: YouBot
+User-agent: Amazonbot
+User-agent: Applebot-Extended
+User-agent: ImagesiftBot
+User-agent: Kangaroo Bot
+Disallow: /
+
+# Standard Search Indexing (disallow internal source/data directories)
+User-agent: *
+Disallow: /data/
+Disallow: /tools/
+Disallow: /tests/
+Disallow: /scripts/
